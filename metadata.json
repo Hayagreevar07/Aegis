@@ -1,0 +1,5 @@
+{
+  "name": "Aegis",
+  "description": "A Gemini-powered physics and logic engine that rigorously evaluates ideas, predicting failure modes and calculating risk before implementation.",
+  "requestFramePermissions": []
+}
