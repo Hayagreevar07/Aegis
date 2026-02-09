@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { AnalysisResult, Verdict, PhysicsDomain, PhysicalProperties, BlueprintPart } from "../types";
+import { AnalysisResult, Verdict, PhysicsDomain, PhysicalProperties, BlueprintPart, EnvironmentalConditions } from "../types";
 
 // --- API Key Management System ---
 // To add backup keys, simply add them to this array.
@@ -124,7 +124,8 @@ const analysisSchema: Schema = {
 export const analyzeIdea = async (
   ideaDescription: string, 
   domain: PhysicsDomain = 'General',
-  physicalProps?: PhysicalProperties
+  physicalProps?: PhysicalProperties,
+  envConditions?: EnvironmentalConditions
 ): Promise<AnalysisResult> => {
   return executeWithRetry(async (client) => {
     let promptText = `Execute the AEGIS Engineering Protocol for the following concept.
@@ -145,6 +146,25 @@ export const analyzeIdea = async (
         INSTRUCTION: Incorporate these physical dimensions and material properties into your physics simulation (Step 4). If analyzing Structural Integrity, calculate stress based on these dimensions.`;
     }
 
+    if (envConditions) {
+        promptText += `
+        
+        CRITICAL ENVIRONMENTAL CONDITIONS (SIMULATION PARAMETERS):
+        - Ambient Temperature: ${envConditions.temperature}°C
+        - Atmospheric Pressure: ${envConditions.pressure} atm
+        - Gravity: ${envConditions.gravity} m/s²
+        - Humidity: ${envConditions.humidity}%
+        - Wind Speed: ${envConditions.windSpeed} m/s
+        - Atmosphere Composition: ${envConditions.atmosphere}
+        
+        INSTRUCTION: You MUST apply these specific environmental factors to your analysis.
+        - If Temperature is extreme (e.g. < -100C or > 500C), evaluate material phase changes, brittleness, or melting.
+        - If Pressure is high (e.g. > 10 atm) or low (vacuum), evaluate implosion/explosion risks and seal integrity.
+        - If Gravity is different from Earth (9.81), re-calculate structural loads and fluid dynamics.
+        - If Atmosphere is corrosive or lacks oxygen, evaluate oxidation, combustion viability, and chemical reactions.
+        `;
+    }
+
     promptText += `
               
               PROTOCOL EXECUTION STEPS:
@@ -153,16 +173,16 @@ export const analyzeIdea = async (
               Break the idea into fundamental engineering components (Function, Interfaces, Constraints).
               
               STEP 2: PHYSICS LAW APPLICATION
-              Apply relevant laws (Newton's Laws, Thermodynamics, Fluid Dynamics, Material Science).
+              Select and apply relevant laws from the Universal Physics Library (e.g., Navier-Stokes, Maxwell's Eqs, General Relativity, Ideal Gas Law, Stefan-Boltzmann, Hooke's Law).
               
               STEP 3: MATHEMATICAL CALCULATIONS
-              Perform approximate but realistic calculations for Forces, Loads, Temps, etc. Show equations.
+              Perform approximate but realistic calculations for Forces, Loads, Temps, Energy requirements, etc. using the provided Environmental Conditions. Show equations.
               
               STEP 4: DIMENSIONAL & SIZE ANALYSIS
               Analyze the dimensions provided or estimate them. Check tolerances.
               
               STEP 5: FAILURE PREDICTION
-              Predict primary and cascading failure modes with probabilities.
+              Predict primary and cascading failure modes with probabilities, specifically considering the ${envConditions ? 'DEFINED ENVIRONMENTAL CONDITIONS' : 'environment'}.
               
               STEP 6: MANUFACTURABILITY CHECK
               Evaluate material availability, assembly feasibility, and precision requirements.
@@ -186,10 +206,21 @@ export const analyzeIdea = async (
         systemInstruction: `You are AEGIS, a Gemini-powered autonomous engineering AI agent. 
         Your role is to evaluate, design, and validate ideas using fundamental physics laws, mathematical calculations, and system logic before real-world implementation.
         
+        You have access to the full spectrum of scientific knowledge, including but not limited to:
+        - Classical Mechanics & Dynamics
+        - Thermodynamics & Statistical Mechanics
+        - Electrodynamics & Magnetism
+        - Quantum Mechanics & Particle Physics
+        - Relativistic Physics (Special & General)
+        - Fluid Dynamics & Aerodynamics
+        - Material Science & Crystallography
+        - Chemistry & Chemical Kinetics
+        
         You must be:
         - Rigorous: Apply actual equations and physics laws.
         - Objective: Assign risk scores based on failure probability, not optimism.
         - Precise: Use SI units and specific material properties.
+        - Context-Aware: Strictly adhere to the provided Environmental Conditions (Gravity, Temp, Pressure).
         
         Do not exaggerate certainty. If a design violates physics, state it clearly as IMPOSSIBLE.`,
       }

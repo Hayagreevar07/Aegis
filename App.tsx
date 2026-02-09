@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { analyzeIdea } from './services/gemini';
-import { AnalysisResult, HistoryItem, PhysicalProperties, PhysicsDomain } from './types';
+import { AnalysisResult, HistoryItem, PhysicalProperties, PhysicsDomain, EnvironmentalConditions } from './types';
 import { AnalysisDisplay } from './components/AnalysisDisplay';
 import { PipelineVisualizer } from './components/PipelineVisualizer';
 import { ModelEditor } from './components/ModelEditor';
 import { InfoModal } from './components/InfoModal';
-import { BrainCircuit, Loader2, Sparkles, History, Trash2, ChevronRight, Terminal, Box, Settings2, PlayCircle, HelpCircle } from 'lucide-react';
+import { BrainCircuit, Loader2, Sparkles, History, Trash2, ChevronRight, Terminal, Box, Settings2, PlayCircle, HelpCircle, Thermometer, Wind, Gauge, Cloud } from 'lucide-react';
 
 const SAMPLE_IDEAS = [
     "Perpetual motion machine using magnets",
@@ -13,7 +13,33 @@ const SAMPLE_IDEAS = [
     "Flying car using ion thrusters for city commute"
 ];
 
-const DOMAINS: PhysicsDomain[] = ['General', 'Structural Integrity', 'Thermodynamics', 'Aerodynamics', 'Electromagnetism'];
+const DOMAINS: PhysicsDomain[] = [
+  'General',
+  'Structural Integrity',
+  'Thermodynamics',
+  'Aerodynamics',
+  'Electromagnetism',
+  'Fluid Dynamics',
+  'Quantum Mechanics',
+  'Relativistic Physics',
+  'Acoustics',
+  'Optics',
+  'Chemical Kinetics',
+  'Biomechanics',
+  'Astrophysics',
+  'Geophysics',
+  'Material Science',
+  'Nuclear Physics',
+  'Plasma Physics',
+  'Cybernetics',
+  'Control Theory',
+  'Orbital Mechanics',
+  'Nanotechnology',
+  'Cryogenics',
+  'High Energy Physics',
+  'Meteorology',
+  'Hydrodynamics'
+];
 
 export default function App() {
   const [input, setInput] = useState('');
@@ -23,6 +49,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [pipelineStep, setPipelineStep] = useState(0);
   const [showEditor, setShowEditor] = useState(true);
+  const [showEnv, setShowEnv] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   
   // State for Physics Domain
@@ -34,6 +61,16 @@ export default function App() {
     height: 1.0,
     depth: 1.0,
     material: 'Aluminum 6061'
+  });
+
+  // Environmental Conditions
+  const [envConditions, setEnvConditions] = useState<EnvironmentalConditions>({
+      temperature: 20, // 20C
+      pressure: 1.0, // 1 atm
+      gravity: 9.81, // Earth
+      humidity: 50, // 50%
+      windSpeed: 0,
+      atmosphere: 'Earth Standard'
   });
 
   // Load history on mount
@@ -72,7 +109,7 @@ export default function App() {
 
     try {
       // Pass physical props only if editor was opened, or always if you prefer
-      const data = await analyzeIdea(input, selectedDomain, physicalProps);
+      const data = await analyzeIdea(input, selectedDomain, physicalProps, envConditions);
       
       // Fast forward pipeline to end before showing result
       setPipelineStep(4);
@@ -142,7 +179,7 @@ export default function App() {
           </div>
           <div className="flex items-center gap-6">
             <div className="hidden md:flex items-center gap-4 text-xs font-mono text-slate-500">
-                <span>v2.0.0</span>
+                <span>v2.5.0</span>
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> ONLINE</span>
             </div>
             <button 
@@ -178,13 +215,25 @@ export default function App() {
                     </select>
                  </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                      <button 
                         onClick={loadDemoCase}
                         className="flex items-center gap-2 text-[10px] px-3 py-1.5 rounded border bg-slate-800 hover:bg-slate-700 border-slate-700 text-cyan-400 transition-all font-bold tracking-wider"
                     >
                         <PlayCircle className="w-3 h-3" /> 
-                        LOAD DEMO: BEAM
+                        LOAD DEMO
+                    </button>
+                    <button 
+                        onClick={() => setShowEnv(!showEnv)}
+                        className={`flex items-center gap-2 text-[10px] px-3 py-1.5 rounded border transition-all ${
+                            showEnv
+                            ? 'bg-purple-500/20 border-purple-500 text-purple-300' 
+                            : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-400'
+                        }`}
+                        title="Configure Environment (Temp, Gravity, etc.)"
+                    >
+                        <Settings2 className="w-3 h-3" /> 
+                        ENVIRONMENT
                     </button>
                     <button 
                         onClick={() => setShowEditor(!showEditor)}
@@ -195,10 +244,78 @@ export default function App() {
                         }`}
                     >
                         <Box className="w-3 h-3" /> 
-                        {showEditor ? 'HIDE 3D EDITOR' : 'OPEN 3D EDITOR'}
+                        3D MODEL
                     </button>
                 </div>
             </div>
+
+            {/* Environment Config Panel */}
+            {showEnv && (
+                <div className="animate-fade-in bg-slate-950/50 border border-purple-500/30 rounded-xl p-4 mb-4 grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                        <label className="text-[10px] text-purple-300 font-mono flex items-center gap-1"><Thermometer className="w-3 h-3" /> Temp (°C)</label>
+                        <input 
+                            type="number" 
+                            value={envConditions.temperature} 
+                            onChange={(e) => setEnvConditions({...envConditions, temperature: parseFloat(e.target.value)})}
+                            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200"
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[10px] text-purple-300 font-mono flex items-center gap-1"><Gauge className="w-3 h-3" /> Pressure (atm)</label>
+                        <input 
+                            type="number" 
+                            value={envConditions.pressure} 
+                            onChange={(e) => setEnvConditions({...envConditions, pressure: parseFloat(e.target.value)})}
+                            step="0.1"
+                            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200"
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[10px] text-purple-300 font-mono flex items-center gap-1"><Settings2 className="w-3 h-3" /> Gravity (m/s²)</label>
+                        <input 
+                            type="number" 
+                            value={envConditions.gravity} 
+                            onChange={(e) => setEnvConditions({...envConditions, gravity: parseFloat(e.target.value)})}
+                            step="0.01"
+                            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200"
+                        />
+                    </div>
+                     <div className="space-y-1">
+                        <label className="text-[10px] text-purple-300 font-mono flex items-center gap-1"><Cloud className="w-3 h-3" /> Humidity (%)</label>
+                        <input 
+                            type="number" 
+                            value={envConditions.humidity} 
+                            onChange={(e) => setEnvConditions({...envConditions, humidity: parseFloat(e.target.value)})}
+                            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200"
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[10px] text-purple-300 font-mono flex items-center gap-1"><Wind className="w-3 h-3" /> Wind (m/s)</label>
+                        <input 
+                            type="number" 
+                            value={envConditions.windSpeed} 
+                            onChange={(e) => setEnvConditions({...envConditions, windSpeed: parseFloat(e.target.value)})}
+                            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200"
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[10px] text-purple-300 font-mono flex items-center gap-1"><Cloud className="w-3 h-3" /> Atmosphere</label>
+                        <select 
+                            value={envConditions.atmosphere}
+                            onChange={(e) => setEnvConditions({...envConditions, atmosphere: e.target.value})}
+                            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200"
+                        >
+                            <option>Earth Standard</option>
+                            <option>Mars (CO2)</option>
+                            <option>Vacuum (Space)</option>
+                            <option>Venus (Acidic/High P)</option>
+                            <option>Underwater</option>
+                            <option>Titan (Methane)</option>
+                        </select>
+                    </div>
+                </div>
+            )}
 
             {/* 3D Editor Area - visible only when toggled */}
             {showEditor && (

@@ -143,9 +143,10 @@ const PrimitiveMesh: React.FC<PrimitiveMeshProps> = ({
                  <TransformControls 
                     object={meshRef.current}
                     mode={transformMode}
-                    onDraggingChanged={(e) => {
-                        setIsDragging(e.value);
-                        if (!e.value) handleTransformEnd();
+                    onMouseDown={() => setIsDragging(true)}
+                    onMouseUp={() => {
+                        setIsDragging(false);
+                        handleTransformEnd();
                     }}
                     size={0.8}
                     space="local"
@@ -773,44 +774,4 @@ export const ModelEditor: React.FC<ModelEditorProps> = ({ properties, onChange, 
                     </div>
 
                     <div className="border-t border-slate-800 pt-5 mt-5">
-                        <h3 className="text-xs font-bold text-slate-200 flex items-center gap-2 mb-4 font-mono uppercase tracking-wider">
-                            <Maximize className="w-3 h-3 text-cyan-500" /> Material
-                        </h3>
-                        <div className="grid grid-cols-1 gap-2">
-                            {MATERIALS.map((mat) => (
-                                <button
-                                    key={mat.name}
-                                    onClick={() => onChange({ ...properties, material: mat.name })}
-                                    className={`text-left px-3 py-2 rounded-lg text-[10px] font-mono transition-all border ${
-                                        properties.material === mat.name 
-                                        ? 'bg-cyan-500/10 border-cyan-500/50 text-cyan-300' 
-                                        : 'bg-slate-800 border-transparent text-slate-400 hover:bg-slate-700'
-                                    }`}
-                                >
-                                    <div className="flex justify-between">
-                                        <span>{mat.name}</span>
-                                        <span className="opacity-50">{mat.density}</span>
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="pt-5 border-t border-slate-800 shrink-0">
-                    <div className="p-3 bg-slate-800/50 rounded border border-slate-700">
-                        <div className="flex items-start gap-2">
-                            <Ruler className="w-3 h-3 text-slate-500 mt-0.5" />
-                            <p className="text-[10px] text-slate-400 leading-relaxed">
-                                Vol: <span className="text-slate-200">{(properties.width * properties.height * properties.depth).toFixed(2)} m³</span><br/>
-                                Simulating {currentMaterial.density} density.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </>
-        )}
-      </div>
-    </div>
-  );
-};
+                        <h3 className="text-xs font-bold text-slate-200 flex items-center gap-2

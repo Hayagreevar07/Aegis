@@ -5,13 +5,47 @@ export enum Verdict {
   IMPOSSIBLE = 'IMPOSSIBLE',
 }
 
-export type PhysicsDomain = 'General' | 'Structural Integrity' | 'Thermodynamics' | 'Aerodynamics' | 'Electromagnetism';
+export type PhysicsDomain = 
+  | 'General' 
+  | 'Structural Integrity' 
+  | 'Thermodynamics' 
+  | 'Aerodynamics' 
+  | 'Electromagnetism'
+  | 'Fluid Dynamics'
+  | 'Quantum Mechanics'
+  | 'Relativistic Physics'
+  | 'Acoustics'
+  | 'Optics'
+  | 'Chemical Kinetics'
+  | 'Biomechanics'
+  | 'Astrophysics'
+  | 'Geophysics'
+  | 'Material Science'
+  | 'Nuclear Physics'
+  | 'Plasma Physics'
+  | 'Cybernetics'
+  | 'Control Theory'
+  | 'Orbital Mechanics'
+  | 'Nanotechnology'
+  | 'Cryogenics'
+  | 'High Energy Physics'
+  | 'Meteorology'
+  | 'Hydrodynamics';
 
 export interface PhysicalProperties {
   width: number;
   height: number;
   depth: number;
   material: string;
+}
+
+export interface EnvironmentalConditions {
+  temperature: number; // Celsius
+  pressure: number; // Atmospheres
+  gravity: number; // m/s^2 relative to Earth (9.81)
+  humidity: number; // Percentage
+  windSpeed: number; // m/s
+  atmosphere: string; // Composition (e.g., "Earth Standard", "Mars CO2", "Vacuum")
 }
 
 export type PrimitiveType = 'box' | 'cylinder' | 'sphere' | 'cone' | 'capsule';
