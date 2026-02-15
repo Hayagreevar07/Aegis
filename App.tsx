@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { analyzeIdea } from './services/gemini';
+import { StorageService } from './services/storage';
 import { AnalysisResult, HistoryItem, PhysicalProperties, PhysicsDomain, EnvironmentalConditions } from './types';
 import { AnalysisDisplay } from './components/AnalysisDisplay';
 import { PipelineVisualizer } from './components/PipelineVisualizer';
 import { ModelEditor } from './components/ModelEditor';
 import { InfoModal } from './components/InfoModal';
-import { BrainCircuit, Loader2, Sparkles, History, Trash2, ChevronRight, Terminal, Box, Settings2, PlayCircle, HelpCircle, Thermometer, Wind, Gauge, Cloud } from 'lucide-react';
+import { CloudConnect } from './components/CloudConnect';
+import { BrainCircuit, Loader2, Sparkles, History, Trash2, ChevronRight, Terminal, Box, Settings2, PlayCircle, HelpCircle, Thermometer, Wind, Gauge, Cloud, Wifi, WifiOff } from 'lucide-react';
 
 const SAMPLE_IDEAS = [
-    "Perpetual motion machine using magnets",
-    "Dyson sphere construction using Mercury's mass",
-    "Flying car using ion thrusters for city commute"
+    "Fusion reactor with spherical core and magnetic coils",
+    "Orbital satellite with solar wings and dish antenna",
+    "Hexapod robot with spherical body and cylindrical legs"
 ];
 
 const DOMAINS: PhysicsDomain[] = [
@@ -51,6 +53,8 @@ export default function App() {
   const [showEditor, setShowEditor] = useState(true);
   const [showEnv, setShowEnv] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [showCloud, setShowCloud] = useState(false);
+  const [isCloudActive, setIsCloudActive] = useState(false);
   
   // State for Physics Domain
   const [selectedDomain, setSelectedDomain] = useState<PhysicsDomain>('General');
@@ -75,14 +79,12 @@ export default function App() {
 
   // Load history on mount
   useEffect(() => {
-    const saved = localStorage.getItem('idea_validator_history');
-    if (saved) {
-        try {
-            setHistory(JSON.parse(saved));
-        } catch (e) {
-            console.error("Failed to load history");
-        }
-    }
+    const loadData = async () => {
+        setIsCloudActive(StorageService.isCloudEnabled());
+        const data = await StorageService.getHistory();
+        setHistory(data);
+    };
+    loadData();
   }, []);
 
   // Pipeline Animation Logic
@@ -124,9 +126,12 @@ export default function App() {
         result: { ...data, domain: selectedDomain }
       };
       
-      const updatedHistory = [newHistoryItem, ...history].slice(0, 10); // Keep last 10
+      // Save via Service (Local or Cloud)
+      await StorageService.saveItem(newHistoryItem);
+      
+      // Refresh list
+      const updatedHistory = await StorageService.getHistory();
       setHistory(updatedHistory);
-      localStorage.setItem('idea_validator_history', JSON.stringify(updatedHistory));
       
     } catch (err: any) {
       setError(err.message || "Analysis failed due to a system error.");
@@ -136,14 +141,14 @@ export default function App() {
   };
 
   const loadDemoCase = () => {
-    setInput("Heavy Duty I-Beam for Skyscraper Construction");
+    setInput("Experimental Warp Drive Core with cylindrical field stabilizers");
     setPhysicalProps({
-        width: 0.5,
-        height: 0.5,
-        depth: 4.5,
-        material: "Stainless Steel"
+        width: 2.5,
+        height: 1.8,
+        depth: 2.5,
+        material: "Titanium Grade 5"
     });
-    setSelectedDomain('Structural Integrity');
+    setSelectedDomain('High Energy Physics');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -155,15 +160,16 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const clearHistory = () => {
+  const clearHistory = async () => {
+    await StorageService.clearHistory();
     setHistory([]);
-    localStorage.removeItem('idea_validator_history');
   };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-cyan-500/30">
       
       <InfoModal isOpen={showInfo} onClose={() => setShowInfo(false)} />
+      <CloudConnect isOpen={showCloud} onClose={() => setShowCloud(false)} />
 
       {/* Navbar */}
       <nav className="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
@@ -173,11 +179,25 @@ export default function App() {
                 <BrainCircuit className="w-6 h-6 text-cyan-400" />
             </div>
             <div>
-                <h1 className="font-bold text-lg tracking-tight text-white">IdeaValidator<span className="text-cyan-400">.AI</span></h1>
+                <h1 className="font-bold text-lg tracking-tight text-white">AEGIS</h1>
                 <p className="text-[10px] text-slate-400 font-mono leading-none uppercase tracking-widest">Physics Validation Engine</p>
             </div>
           </div>
           <div className="flex items-center gap-6">
+            
+            {/* Cloud Status Indicator */}
+            <button 
+                onClick={() => setShowCloud(true)}
+                className={`hidden md:flex items-center gap-2 text-xs font-mono px-3 py-1.5 rounded-full border transition-all ${
+                    isCloudActive 
+                    ? 'bg-indigo-500/10 border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/20' 
+                    : 'bg-slate-800 border-slate-700 text-slate-500 hover:text-slate-300'
+                }`}
+            >
+                {isCloudActive ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+                {isCloudActive ? 'CLOUD CONNECTED' : 'OFFLINE MODE'}
+            </button>
+
             <div className="hidden md:flex items-center gap-4 text-xs font-mono text-slate-500">
                 <span>v2.5.0</span>
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> ONLINE</span>
@@ -405,66 +425,59 @@ export default function App() {
           {!isAnalyzing && !result && !error && (
             <div className="h-64 flex flex-col items-center justify-center text-slate-600 space-y-4 border border-slate-800/50 border-dashed rounded-2xl">
                 <BrainCircuit className="w-16 h-16 opacity-20" />
-                <p className="text-sm font-mono">Ready to process {selectedDomain.toLowerCase()} constraints...</p>
+                <p className="text-sm font-mono opacity-50">AWAITING ENGINEERING INPUT...</p>
             </div>
           )}
         </div>
 
-        {/* Right Column: Sidebar / History (4 cols) */}
+        {/* Right Column: History (4 cols) */}
         <div className="lg:col-span-4 space-y-6">
-            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 sticky top-24">
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-                        <History className="w-4 h-4 text-cyan-500" />
-                        Simulation Logs
-                    </h2>
-                    {history.length > 0 && (
-                        <button onClick={clearHistory} className="text-xs text-slate-500 hover:text-red-400 transition-colors">
-                            CLEAR
-                        </button>
-                    )}
-                </div>
-
-                <div className="space-y-3">
-                    {history.length === 0 ? (
-                        <p className="text-sm text-slate-600 italic text-center py-8">No prior logs found.</p>
-                    ) : (
-                        history.map((item) => (
-                            <button
-                                key={item.id}
-                                onClick={() => loadHistoryItem(item)}
-                                className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-slate-600 rounded-lg p-3 transition-all group relative overflow-hidden"
-                            >
-                                <div className={`absolute left-0 top-0 bottom-0 w-1 ${
-                                    item.result.verdict === 'FEASIBLE' ? 'bg-green-500' :
-                                    item.result.verdict === 'PLAUSIBLE' ? 'bg-blue-500' :
-                                    item.result.verdict === 'IMPLAUSIBLE' ? 'bg-orange-500' : 'bg-red-500'
-                                }`} />
-                                
-                                <h3 className="text-slate-300 font-medium text-xs mb-1 truncate pr-4">{item.title}</h3>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-[10px] text-slate-500 font-mono">
-                                        {item.result.domain || 'General'}
-                                    </span>
-                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-900 ${
-                                         item.result.riskScore > 0.7 ? 'text-red-400' : 'text-green-400'
-                                    }`}>
-                                        RISK: {(item.result.riskScore * 100).toFixed(0)}%
-                                    </span>
-                                </div>
-                                <ChevronRight className="w-4 h-4 text-slate-700 absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </button>
-                        ))
-                    )}
-                </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl h-fit sticky top-24">
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-bold text-slate-200 font-mono uppercase tracking-wider flex items-center gap-2">
+                    <History className="w-4 h-4 text-cyan-500" /> Recent Validations
+                </h2>
+                <button 
+                    onClick={clearHistory}
+                    className="text-xs text-slate-500 hover:text-red-400 transition-colors"
+                >
+                    CLEAR
+                </button>
             </div>
             
-            <div className="bg-gradient-to-br from-cyan-900/20 to-slate-900 border border-cyan-500/10 rounded-2xl p-6">
-                <h3 className="text-cyan-400 font-mono text-xs font-bold mb-2">SIMULATION TIP</h3>
-                <p className="text-slate-400 text-xs leading-relaxed">
-                    Try switching domains (e.g., from 'General' to 'Thermodynamics') without changing the prompt to see how the risk profile changes based on physics constraints.
-                </p>
+            <div className="space-y-3">
+                {history.length === 0 ? (
+                    <div className="text-center py-8 text-slate-600 text-xs italic">
+                        No previous simulations found.
+                    </div>
+                ) : (
+                    history.map(item => (
+                        <button 
+                            key={item.id}
+                            onClick={() => loadHistoryItem(item)}
+                            className="w-full text-left p-3 rounded-xl border border-slate-800 bg-slate-950/50 hover:border-cyan-500/30 hover:bg-slate-800 transition-all group relative overflow-hidden"
+                        >
+                            <div className="flex justify-between items-start mb-1">
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                                    item.result.verdict === 'FEASIBLE' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                                    item.result.verdict === 'PLAUSIBLE' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                                    'bg-red-500/10 text-red-400 border-red-500/20'
+                                }`}>
+                                    {item.result.verdict}
+                                </span>
+                                <span className="text-[10px] text-slate-500 font-mono">
+                                    {new Date(item.timestamp).toLocaleDateString()}
+                                </span>
+                            </div>
+                            <h3 className="text-xs font-medium text-slate-300 line-clamp-2 group-hover:text-cyan-300 transition-colors">
+                                {item.title}
+                            </h3>
+                            <ChevronRight className="w-4 h-4 text-slate-600 absolute right-2 bottom-2 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+                        </button>
+                    ))
+                )}
             </div>
+          </div>
         </div>
       </main>
     </div>

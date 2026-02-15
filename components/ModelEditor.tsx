@@ -3,7 +3,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Grid, Center, Text, Html, TransformControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { PhysicalProperties, BlueprintPart, PrimitiveType } from '../types';
-import { Box, Layers, Maximize, Ruler, Sparkles, Wand2, RefreshCw, AlertTriangle, Play, Activity, Gauge, Undo, Redo, Plus, Trash2, Edit3, Move, Rotate3D, Scaling, Palette, MousePointer2 } from 'lucide-react';
+import { Box, Layers, Maximize, Ruler, Sparkles, Wand2, RefreshCw, AlertTriangle, Play, Activity, Gauge, Undo, Redo, Plus, Trash2, Edit3, Move, Rotate3D, Scaling, Palette, MousePointer2, Maximize2, Minimize2 } from 'lucide-react';
 import { generateBlueprint } from '../services/gemini';
 
 // JSX.IntrinsicElements are automatically extended by @react-three/fiber
@@ -237,6 +237,7 @@ export const ModelEditor: React.FC<ModelEditorProps> = ({ properties, onChange, 
   const [blueprint, setBlueprint] = useState<BlueprintPart[]>([]);
   const [selectedPartId, setSelectedPartId] = useState<string | null>(null);
   const [transformMode, setTransformMode] = useState<'translate' | 'rotate' | 'scale'>('translate');
+  const [isFullScreen, setIsFullScreen] = useState(false);
   
   // History State
   const [history, setHistory] = useState<BlueprintPart[][]>([[]]);
@@ -245,6 +246,17 @@ export const ModelEditor: React.FC<ModelEditorProps> = ({ properties, onChange, 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Handle Esc key to exit full screen
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullScreen) {
+        setIsFullScreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isFullScreen]);
 
   const handleDimensionChange = (key: keyof PhysicalProperties, value: number) => {
     onChange({ ...properties, [key]: parseFloat(value.toFixed(1)) });
@@ -350,31 +362,48 @@ export const ModelEditor: React.FC<ModelEditorProps> = ({ properties, onChange, 
   const currentMaterial = MATERIALS.find(m => m.name === properties.material) || MATERIALS[0];
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 h-[600px] w-full bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden mb-6">
+    <div 
+        className={`flex flex-col md:flex-row bg-slate-900 border border-slate-800 transition-all duration-300 ${
+            isFullScreen 
+            ? 'fixed inset-0 z-[1000] rounded-none h-screen w-screen m-0 border-0' 
+            : 'relative gap-6 h-[600px] w-full rounded-2xl mb-6'
+        }`}
+    >
       
       {/* 3D Viewport */}
       <div 
-        className="relative flex-1 bg-slate-950 min-h-[300px]" 
+        className="relative flex-1 bg-slate-950 min-h-[300px] overflow-hidden group" 
         onClick={() => setSelectedPartId(null)}
       >
         <div className="absolute top-4 left-4 z-10 flex flex-col gap-2 pointer-events-none">
-            <div className="flex items-center gap-2 bg-slate-900/80 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-800 pointer-events-auto">
+            <div className="flex items-center gap-2 bg-slate-900/80 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-800 pointer-events-auto shadow-lg">
                 <Layers className="w-4 h-4 text-cyan-400" />
                 <span className="text-xs font-mono text-slate-300">
                     {mode === 'manual' ? `ISO VIEW // ${properties.material}` : 'GENERATIVE BLUEPRINT'}
                 </span>
             </div>
             {isSimulating && (
-                 <div className="flex items-center gap-2 bg-red-900/80 backdrop-blur px-3 py-1.5 rounded-lg border border-red-500/50 pointer-events-auto animate-pulse">
+                 <div className="flex items-center gap-2 bg-red-900/80 backdrop-blur px-3 py-1.5 rounded-lg border border-red-500/50 pointer-events-auto animate-pulse shadow-lg">
                     <Activity className="w-4 h-4 text-red-400" />
                     <span className="text-xs font-mono text-red-100">STRESS TEST ACTIVE</span>
                 </div>
             )}
         </div>
 
+        {/* Full Screen Toggle */}
+        <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <button
+                onClick={(e) => { e.stopPropagation(); setIsFullScreen(!isFullScreen); }}
+                className="p-2 bg-slate-900/80 backdrop-blur border border-slate-700 rounded-lg text-slate-400 hover:text-cyan-400 hover:border-cyan-500/50 transition-all shadow-lg"
+                title={isFullScreen ? "Exit Full Screen (Esc)" : "Enter Full Screen"}
+            >
+                {isFullScreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+            </button>
+        </div>
+
         {/* 3D Transform Toolbar */}
         {selectedPart && !isSimulating && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex gap-1 bg-slate-900/90 backdrop-blur border border-slate-700 p-1 rounded-lg shadow-xl">
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex gap-1 bg-slate-900/90 backdrop-blur border border-slate-700 p-1 rounded-lg shadow-xl animate-fade-in-up">
                  <button 
                     onClick={(e) => { e.stopPropagation(); setTransformMode('translate'); }}
                     className={`p-2 rounded hover:bg-slate-700 transition-colors ${transformMode === 'translate' ? 'bg-cyan-600 text-white' : 'text-slate-400'}`}
@@ -439,7 +468,7 @@ export const ModelEditor: React.FC<ModelEditorProps> = ({ properties, onChange, 
             
             {mode === 'blueprint' && blueprint.length === 0 && !isGenerating && (
                  <Html position={[0, 1, 0]} center>
-                    <div className="text-slate-500 text-xs font-mono bg-slate-900/80 p-2 rounded border border-slate-800 backdrop-blur whitespace-nowrap">
+                    <div className="text-slate-500 text-xs font-mono bg-slate-900/80 p-2 rounded border border-slate-800 backdrop-blur whitespace-nowrap shadow-lg">
                         Waiting for blueprint data...
                     </div>
                  </Html>
@@ -460,7 +489,7 @@ export const ModelEditor: React.FC<ModelEditorProps> = ({ properties, onChange, 
         
         {error && (
             <div className="absolute inset-0 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm z-20">
-                <div className="flex flex-col items-center gap-3 text-red-400 p-4 bg-slate-900 border border-red-900 rounded-xl">
+                <div className="flex flex-col items-center gap-3 text-red-400 p-4 bg-slate-900 border border-red-900 rounded-xl shadow-2xl">
                     <AlertTriangle className="w-8 h-8" />
                     <span className="text-sm font-mono">{error}</span>
                     <button 
@@ -489,7 +518,11 @@ export const ModelEditor: React.FC<ModelEditorProps> = ({ properties, onChange, 
       </div>
 
       {/* Controls Panel */}
-      <div className="w-full md:w-80 bg-slate-900 p-4 border-l border-slate-800 flex flex-col gap-4 overflow-hidden">
+      <div 
+        className={`bg-slate-900 p-4 border-l border-slate-800 flex flex-col gap-4 overflow-hidden transition-all duration-300 ${
+            isFullScreen ? 'w-full md:w-96 border-l-2' : 'w-full md:w-80'
+        }`}
+      >
         
         {/* Generative Toggle */}
         <div className="bg-slate-800/50 p-1 rounded-lg flex shrink-0">

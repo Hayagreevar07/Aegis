@@ -35,10 +35,10 @@ export const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose }) => {
           {/* About Section */}
           <div className="space-y-3">
             <h3 className="text-sm font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2">
-              <Info className="w-4 h-4" /> About IdeaValidator
+              <Info className="w-4 h-4" /> About AEGIS
             </h3>
             <p className="text-sm text-slate-400 leading-relaxed text-justify">
-              IdeaValidator AI is an autonomous physics and logic engine designed to rigorously evaluate concepts before implementation. 
+              AEGIS is an autonomous physics and logic engine designed to rigorously evaluate concepts before implementation. 
               Powered by Google's Gemini 3 models, it simulates structural integrity, thermodynamic properties, and economic feasibility 
               to predict failure modes and calculate risk scores with high precision.
             </p>

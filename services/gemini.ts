@@ -138,12 +138,15 @@ export const analyzeIdea = async (
     if (physicalProps) {
         promptText += `
         
-        Defined Physical Constraints:
+        Default Physical Configuration (User Settings):
         - Dimensions: ${physicalProps.width}m (W) x ${physicalProps.height}m (H) x ${physicalProps.depth}m (D)
-        - Material: ${physicalProps.material}
+        - Material Setting: ${physicalProps.material}
         - Estimated Volume: ${(physicalProps.width * physicalProps.height * physicalProps.depth).toFixed(2)} m³
         
-        INSTRUCTION: Incorporate these physical dimensions and material properties into your physics simulation (Step 4). If analyzing Structural Integrity, calculate stress based on these dimensions.`;
+        CRITICAL INSTRUCTION: 
+        1. DIMENSIONS: Use the dimensions provided above as a baseline. However, if the Input Concept implies a radically different scale (e.g., "Nanobot", "Dyson Sphere", "Microchip"), override these settings with the appropriate physics scale for that object.
+        2. MATERIAL: The "Material Setting" (${physicalProps.material}) is a placeholder. IF the Input Concept mentions or implies a different material (e.g. "Wooden chair", "Gold coin", "Biological tissue"), YOU MUST PRIORITIZE the material from the Input Concept for your analysis. Only use ${physicalProps.material} if the concept is ambiguous.
+        3. STRUCTURAL: Calculate stress/strain based on the effective material and dimensions.`;
     }
 
     if (envConditions) {
@@ -246,7 +249,17 @@ export const generateBlueprint = async (idea: string): Promise<BlueprintPart[]> 
   
   Coordinate system: Y is up. Center is (0,0,0).
   Keep the total size roughly within a 5x5x5 unit box.
-  Use distinct colors (hex codes) for different components to make it look like a technical schematic.
+  
+  COLOR INSTRUCTION: Use ONLY bright, high-visibility neon colors for the components to ensure they stand out against a dark background.
+  Preferred colors:
+  - Cyan / Electric Blue (#22d3ee, #06b6d4, #00ffff)
+  - Neon Green / Lime (#4ade80, #a3e635, #00ff00)
+  - Hot Pink / Magenta (#f472b6, #e879f9, #ff00ff)
+  - Bright Red / Orange (#f87171, #fb923c, #ff4500)
+  - Pure White / Silver (#ffffff, #e2e8f0)
+  - Bright Yellow / Gold (#facc15, #ffd700)
+  Avoid dark colors like black, dark grey, or dark blue.
+  
   Ensure the parts connect to form a cohesive structure representing the object.
   Make it look engineered and structural.`;
 
